@@ -3,7 +3,6 @@
   (:require [compojure.api.sweet :refer :all]
             [ring.util.http-response :refer :all]
             [ring.util.http-status :as http-status]
-            [manifold.deferred :as d]
             [clojure.core.async :as a]
             [clojure.pprint :refer [pprint]]
             [schema.core :as s]

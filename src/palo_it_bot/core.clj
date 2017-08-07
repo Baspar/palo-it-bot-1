@@ -29,24 +29,10 @@
         action-over? (not (get-in body [:result :actionIncomplete] false))
 
         out (cond
-              (= action "cto?") {:sender-id sender-id
-                                 :message-type :photo
-                                 :message-value {:photo "http://user.photos.s3.amazonaws.com/user_213695_1440575935.jpg"
-                                                 :caption speech}}
-              (= action "managing-director?") {:sender-id sender-id
-                                               :message-type :photo
-                                               :message-value {:photo "https://media.licdn.com/mpr/mpr/shrinknp_200_200/AAEAAQAAAAAAAAhhAAAAJGZhZjkyNjg4LTRkZGMtNGY0Zi04MzM0LTUzZTI5NzBjNjgxOA.jpg"
-                                                               :caption speech}}
-              (= action "get_my_identity") {:sender-id sender-id
-                                            :message-type :text
-                                            :message-value (replace speech
-                                                                    #"\[\[identity\]\]"
-                                                                    (str "\"" backend-id "\""))}
-              (= action "get_history") {:sender-id sender-id
-                                        :message-type :text
-                                        :message-value (replace speech
-                                                                #"\[\[history\]\]"
-                                                                (str "\n  - " (join "\n  - " (db/get-history backend-id))))}
+              (= action "example-picture") {:sender-id sender-id
+                                            :message-type :photo
+                                            :message-value {:photo "http://user.photos.s3.amazonaws.com/user_213695_1440575935.jpg"
+                                                            :caption speech}}
               :else {:sender-id sender-id
                      :message-type :text
                      :message-value speech})]
@@ -61,18 +47,13 @@
                       :type :json
                       :form {:chat_id "-1001138612424"
                              :text (str "\"" message-value "\"")}}))
-
-    ;; History
-    (when action-over?
-      (db/append-history backend-id action))
-
     (a/>!! ch-out out)))
 ;; Core Dispatch (photo)
 (defmethod core-dispatch :photo
   [ch-out _ sender-id sender-medium message-value]
-  (a/>!! ch-out {:sender-id sender-id}
-                :message-type :text
-                :message-value "You send me a picture"))
+  (a/>!! ch-out {:sender-id sender-id
+                 :message-type :text
+                 :message-value "You send me a picture"}))
 ;; Core Dispatch (unknown)
 (defmethod core-dispatch :unknown
   [ch-out _ sender-id sender-medium message-value]
@@ -83,11 +64,15 @@
 ;; Core Handler
 (defn core
   [payload]
-  (let [message-value (payload :message-value)
-        sender-id (payload :sender-id)
-        sender-medium (payload :sender-medium)
-        message-type (get payload :message-type :unknown)
-        ch-out (a/chan)]
+  (let [message-value   (get payload :message-value)
+        sender-id       (get payload :sender-id)
+        sender-medium   (get payload :sender-medium)
+        message-type    (get payload :message-type :unknown)
+        ch-out          (a/chan)]
     (a/go
-      (core-dispatch ch-out message-type sender-id sender-medium message-value))
+      (core-dispatch ch-out
+                     message-type
+                     sender-id
+                     sender-medium
+                     message-value))
     ch-out))
